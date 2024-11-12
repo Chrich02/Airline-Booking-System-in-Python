@@ -1,5 +1,6 @@
 import csv
 import random
+import re
 
 class Flight:
     def __init__(self, max_seats=100):
@@ -51,21 +52,29 @@ class Flight:
             print("Sorry, the flight is fully booked.")
 
     def cancel_ticket(self, ticket_number):
+        # Validate ticket number format using regular expression
+        pattern = r"\d{3}-\d{5}"
+        if not re.match(pattern, ticket_number):
+            print("Invalid ticket number format. Please enter in the format 123-12345 as displayed on your booking.")
+            return
+
         found = False
         for customer_id, (ticket, seat_number) in self.bookings.items():
-            if ticket == ticket_number: # if the input matches an exisitng ticket number, delete the bookign and increment the available seats counter
-                del self.bookings[customer_id] 
-                self.available_seats += 1 
-                
-                # If the cancelled seat was a window seat, re-add it to the list of available window seats
+            ticket_parts = ticket.split('-')
+            if ticket_parts[1] == ticket_number.split('-')[1]:  # if the input matches an exisitng ticket number
+                del self.bookings[customer_id]
+                self.available_seats += 1
+
+                # If the cancelled seat was a window seat, add it back to the list of available window seats
                 if seat_number % 3 == 1:
                     self.window_seats.append(seat_number)
 
-                self.cancelled_bookings.append((customer_id, ticket_number))
-                found = True 
+                self.cancelled_bookings.append((customer_id, ticket_number))  # Append to a separate list for cancelled bookings
+                found = True
                 print(f"Ticket {ticket_number} cancelled successfully.")
                 break
-        if not found: 
+
+        if not found:
             print("Ticket not found.")
 
     def update_ticket(self, ticket_number, new_info):
@@ -102,7 +111,7 @@ class Flight:
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['Cancelled Customer ID', 'Cancelled Ticket Number'])
-            for customer_id, ticket_number in self.save_cancelled_bookings:
+            for customer_id, ticket_number in self.cancelled_bookings:
                 writer.writerow([customer_id, ticket_number])
     
 # ADMIN TOOL 
@@ -125,32 +134,35 @@ def main():
         print("4. Query a booking")
         print("5. Save and Exit")
 
-        #remove later 
+        # admin tool 
         print("6 Reset Flight")
 
         choice = input("Enter your choice: ")
 
-        if choice == '1':
-            flight.book_ticket()
-        elif choice == '2':
-            ticket_number = input("Enter ticket number to cancel: ")
-            flight.cancel_ticket(ticket_number)
-            flight.save_cancelled_bookings('cancelled.csv')
-        elif choice == '3':
-            # Implement ticket update logic
-            pass
-        elif choice == '4':
-            ticket_number = input("Enter ticket number to query: ")
-            flight.query_booking(ticket_number)
-        elif choice == '5':
-            flight.save_bookings('bookings.csv')
-            break
+        if choice.isdigit():  # Check if the input is a digit
+            choice = int(choice)
+            if choice == 1:
+                flight.book_ticket()
+            elif choice == 2:
+                ticket_number = input("Enter ticket number to cancel: ")
+                flight.cancel_ticket(ticket_number)
+                flight.save_cancelled_bookings('cancelled.csv')
+            elif choice == '3':
+                # Implement ticket update logic
+                pass
+            elif choice == '4':
+                ticket_number = input("Enter ticket number to query: ")
+                flight.query_booking(ticket_number)
+            elif choice == '5':
+                flight.save_bookings('bookings.csv')
+                break
+            else:
+                print("Invalid choice.")
+            
+            if choice == '6':
+                flight.reset_flight()
         else:
-            print("Invalid choice.")
-        
-        if choice == '6':
-            flight.reset_flight()
-        
+            print("Invalid choice. Please enter a number from the menu.")
 
 if __name__ == "__main__":
     main()
