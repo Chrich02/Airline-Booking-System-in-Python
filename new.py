@@ -91,9 +91,9 @@ class Flight:
     def save_bookings(self, filename):
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Customer ID', 'Ticket Number', 'Available Seats'])
-            for customer_id, ticket_number, in self.bookings.items():
-                writer.writerow([customer_id, ticket_number, self.available_seats])
+            writer.writerow(['Customer ID', 'Ticket Number', 'Available Seats']) # inclue seat number
+            for customer_id, (ticket_number, seat_number) in self.bookings.items():
+                writer.writerow([customer_id, ticket_number,seat_number, self.available_seats])
 
     def load_bookings(self, filename):
         try:
@@ -128,14 +128,12 @@ def main():
 
     while True:
         print("Welcome to Sagir's Airline! Please enter the number corresponding to your desired query:")
-        print(f"\n1. Book a ticket: {flight.available_seats} seats remaining") # access available_seats through the flight instance 
-        print("2. Cancel a ticket") #doesn't work
+        print(f"\n1. Book a ticket: {flight.available_seats} seats remaining")
+        print("2. Cancel a ticket")
         print("3. Update a ticket")
         print("4. Query a booking")
         print("5. Save and Exit")
-
-        # admin tool 
-        print("6 Reset Flight")
+        print("6. Reset Flight")  # Admin tool
 
         choice = input("Enter your choice: ")
 
@@ -147,22 +145,23 @@ def main():
                 ticket_number = input("Enter ticket number to cancel: ")
                 flight.cancel_ticket(ticket_number)
                 flight.save_cancelled_bookings('cancelled.csv')
-            elif choice == '3':
+            elif choice == 3:
                 # Implement ticket update logic
-                pass
-            elif choice == '4':
+                print("Update functionality coming soon.")
+            elif choice == 4:
                 ticket_number = input("Enter ticket number to query: ")
                 flight.query_booking(ticket_number)
-            elif choice == '5':
+            elif choice == 5:
                 flight.save_bookings('bookings.csv')
+                print("Thank you for using Sagir's Airline. Your changes have been saved.")
                 break
-            else:
-                print("Invalid choice.")
-            
-            if choice == '6':
+            elif choice == 6:
                 flight.reset_flight()
+            else:
+                print("Invalid choice. Please select a valid option.")
         else:
             print("Invalid choice. Please enter a number from the menu.")
+
 
 if __name__ == "__main__":
     main()
