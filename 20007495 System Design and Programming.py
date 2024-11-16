@@ -12,6 +12,7 @@ class Flight:
         # initialise window seat tracking. nth-term an = 3n - 2 for the window seat sequence listed in assessment brief
         self.window_seats = [3 * n - 2 for n in range(1, max_seats // 3 + 1)]
 
+
     def generate_customer_id(self):# high-traffic scenarios could duplicate a customer ID using random.randint 
         used_ids = set(customer_id for customer_id, _ in self.bookings.items()) # create a set of cusotmer IDs used in existing bookings
         while True:
@@ -51,12 +52,17 @@ class Flight:
         else:
             print("Sorry, the flight is fully booked.")
 
-    def cancel_ticket(self, ticket_number):
-        # Validate ticket number format using regular expression
+    def validate_ticket_number(self, ticket_number):
+        # Validate ticket number format using regular expression. Needed for Cancel and Query elements - created for reusability 
         pattern = r"\d{3}-\d{5}"
         if not re.match(pattern, ticket_number):
             print("Invalid ticket number format. Please enter in the format 123-12345 as displayed on your booking.")
-            return
+            return False 
+        return True
+    
+    def cancel_ticket(self, ticket_number):
+        if not self.validate_ticket_number(ticket_number):
+            return # Stop further processing if vaclidation fails
 
         found = False
         for customer_id, (ticket, seat_number) in self.bookings.items():
@@ -77,16 +83,23 @@ class Flight:
         if not found:
             print("Ticket not found.")
 
-    def update_ticket(self, ticket_number, new_info):
-        #implement ticket update logic (e.g., change passenger name, contact details)
-        pass 
 
     def query_booking(self, ticket_number):
-        for customer_id, ticket in self.bookings.items():
-            if ticket == ticket_number:
-                print(f"Customer ID: {customer_id}\nTicket Number: (ticket)")
+        if not self.validate_ticket_number(ticket_number): #re-used element 
+            return 
+        
+        for customer_id, (stored_ticket, seat_number) in self.bookings.items():
+            if stored_ticket == ticket_number:
+                is_window_seat = "Yes" if seat_number % 3 == 1 else "No"
+                print(f"Thank you for entering your ticket number. Here's your booking information:")
+                print(f"Customer ID: {customer_id}")
+                print(f"Ticket Number: {ticket_number}")
+                print(f"Seat Number: {seat_number}")
+                print(f"Window seat: {is_window_seat}")
                 return 
-        print("Ticket not found.")
+            
+        print("Ticket not found.") 
+
 
     def save_bookings(self, filename):
         with open(filename, 'w', newline='') as file:
@@ -94,6 +107,7 @@ class Flight:
             writer.writerow(['Customer ID', 'Ticket Number', 'Available Seats']) # inclue seat number
             for customer_id, (ticket_number, seat_number) in self.bookings.items():
                 writer.writerow([customer_id, ticket_number,seat_number, self.available_seats])
+
 
     def load_bookings(self, filename):
         try:
@@ -106,6 +120,7 @@ class Flight:
                     self.available_seats -= 1
         except FileNotFoundError:
             pass
+
 
     def save_cancelled_bookings(self, filename):
         with open(filename, 'w', newline='') as file:
@@ -130,10 +145,9 @@ def main():
         print("Welcome to Sagir's Airline! Please enter the number corresponding to your desired query:")
         print(f"\n1. Book a ticket: {flight.available_seats} seats remaining")
         print("2. Cancel a ticket")
-        print("3. Update a ticket")
-        print("4. Query a booking")
-        print("5. Save and Exit")
-        print("6. Reset Flight")  # Admin tool
+        print("3. Query a booking")
+        print("4. Save and Exit")
+        print("5. Reset Flight")  # Admin tool
 
         choice = input("Enter your choice: ")
 
@@ -141,22 +155,25 @@ def main():
             choice = int(choice)
             if choice == 1:
                 flight.book_ticket()
+
             elif choice == 2:
                 ticket_number = input("Enter ticket number to cancel: ")
                 flight.cancel_ticket(ticket_number)
                 flight.save_cancelled_bookings('cancelled.csv')
+
             elif choice == 3:
-                # Implement ticket update logic
-                print("Update functionality coming soon.")
-            elif choice == 4:
-                ticket_number = input("Enter ticket number to query: ")
+                # display seat number and advise whether it is a window or aisle seat
+                ticket_number = input("Enter your ticket number for seat information: ")
                 flight.query_booking(ticket_number)
-            elif choice == 5:
+
+            elif choice == 4:
                 flight.save_bookings('bookings.csv')
                 print("Thank you for using Sagir's Airline. Your changes have been saved.")
                 break
-            elif choice == 6:
+
+            elif choice == 5:
                 flight.reset_flight()
+                
             else:
                 print("Invalid choice. Please select a valid option.")
         else:
