@@ -30,7 +30,10 @@ class Flight:
         Returns:
             int: A unique 3-digit customer ID.
         """
-        used_ids = set(customer_id for customer_id, _ in self.bookings.items()) 
+        used_ids = set(self.bookings.keys()) 
+        if len(used_ids) >= 900:
+            raise ValueError("Maximum number of unique customer IDs reached.")
+        
         while True:
             customer_id = random.randint(100, 999)
             if customer_id not in used_ids: 
@@ -48,13 +51,20 @@ class Flight:
         Returns:
             str: A unique ticket number.
         """
+        if not isinstance(customer_id, init) or customer_id < 100 or customer_id > 999:
+            raise ValueError("Invalid customer ID format. Must be a 3-diget integer.")
+        
         used_ticket_numbers = set(ticket_number for ticket_number, _ in self.bookings.values())
-        while True:
+        attempts = 0 
+        while attempts < 10000:
             ticket_number = f"{customer_id}-{str(random.randint(10000, 99999)).zfill(5)}" 
             if ticket_number not in used_ticket_numbers:
                 return ticket_number
+            attempts += 1 
         
+        raise RuntimeError("Unable to generate a unique ticket number.")
     
+
     def window_seat_tickets(self):
         # Displays ticket numbers for all booked window seats.
         for ticket_number, (_, seat_number, _) in self.bookings.items():
@@ -67,20 +77,25 @@ class Flight:
     
         Assigns a window seat if available. Updates seat availability and stores booking information.
         """
-        if self.available_seats > 0: 
-            customer_id = self.generate_customer_id()
-            ticket_number = self.generate_ticket_number(customer_id)
+        try:
+            if self.available_seats > 0: 
+                customer_id = self.generate_customer_id()
+                ticket_number = self.generate_ticket_number(customer_id)
 
-            if self.window_seats:
-                seat_number = self.window_seats.pop(0) 
+                if self.window_seats:
+                    seat_number = self.window_seats.pop(0) 
+                else:
+                    seat_number = self.available_seats
+
+                self.bookings[customer_id] = (ticket_number, seat_number)   
+                self.available_seats -= 1  
+                print(f"Booking successful! Your ticket number is: {ticket_number}, Seat: {seat_number}")
             else:
-                seat_number = self.available_seats
-
-            self.bookings[customer_id] = (ticket_number, seat_number)   
-            self.available_seats -= 1  
-            print(f"Booking successful! Your ticket number is: {ticket_number}, Seat: {seat_number}")
-        else:
-            print("Sorry, the flight is fully booked.")
+                print("Sorry, the flight is fully booked.")
+        except ValueError as e:
+            print(f"Error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
     def validate_ticket_number(self, ticket_number):
         """Validates the format of the ticket number.
@@ -162,7 +177,7 @@ class Flight:
             writer = csv.writer(file)
             writer.writerow(['Customer ID', 'Ticket Number', 'Available Seats']) 
             for customer_id, (ticket_number, seat_number) in self.bookings.items():
-                writer.writerow([customer_id, ticket_number,seat_number, self.available_seats])
+                writer.writerow([customer_id, ticket_number, seat_number, self.available_seats])
 
 
     def load_bookings(self, filename):
