@@ -51,7 +51,7 @@ class Flight:
         Returns:
             str: A unique ticket number.
         """
-        if not isinstance(customer_id, init) or customer_id < 100 or customer_id > 999:
+        if not isinstance(customer_id, int) or customer_id < 100 or customer_id > 999:
             raise ValueError("Invalid customer ID format. Must be a 3-diget integer.")
         
         used_ticket_numbers = set(ticket_number for ticket_number, _ in self.bookings.values())
@@ -121,27 +121,31 @@ class Flight:
         Args:
             ticket_number (str): The ticket number to cancel.
         """
-        if not self.validate_ticket_number(ticket_number):
-            return 
+        try:
+            if not self.validate_ticket_number(ticket_number):
+                return 
 
-        found = False
-        for customer_id, (ticket, seat_number) in self.bookings.items():
-            ticket_parts = ticket.split('-')
-            if ticket_parts[1] == ticket_number.split('-')[1]:  
-                del self.bookings[customer_id]
-                self.available_seats += 1
+            found = False
+            for customer_id, (ticket, seat_number) in self.bookings.items():
+                ticket_parts = ticket.split('-')
+                if ticket_parts[1] == ticket_number.split('-')[1]:  
+                    del self.bookings[customer_id]
+                    self.available_seats += 1
 
-                if seat_number % 3 == 1:
-                    self.window_seats.append(seat_number)
+                    if seat_number % 3 == 1:
+                        self.window_seats.append(seat_number)
 
-                self.cancelled_bookings.append((customer_id, ticket_number))  
-                found = True
-                print(f"Ticket {ticket_number} cancelled successfully.")
-                break
+                    self.cancelled_bookings.append((customer_id, ticket_number))  
+                    found = True
+                    print(f"Ticket {ticket_number} cancelled successfully.\n")
+                    break
 
-        if not found:
-            print("Ticket not found.")
-
+            if not found:
+                print("Ticket not found.")
+        except ValueError as e:
+            print(f"Error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}") 
 
     def query_booking(self, ticket_number):
         """Queries booking information based on the ticket number.
@@ -173,12 +177,14 @@ class Flight:
         Args:
             filename (str): The name of the file to save bookings to.
         """
-        with open(filename, 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Customer ID', 'Ticket Number', 'Available Seats']) 
-            for customer_id, (ticket_number, seat_number) in self.bookings.items():
-                writer.writerow([customer_id, ticket_number, seat_number, self.available_seats])
-
+        try:
+            with open(filename, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Customer ID', 'Ticket Number', 'Available Seats']) 
+                for customer_id, (ticket_number, seat_number) in self.bookings.items():
+                    writer.writerow([customer_id, ticket_number, seat_number, self.available_seats])
+        except Exception as e:
+            print(f"Error saving bookings: {e}")
 
     def load_bookings(self, filename):
         """Loads bookings from a CSV file.
@@ -193,14 +199,20 @@ class Flight:
                 reader = csv.reader(file)
                 next(reader) 
                 for row in reader:
-                    customer_id, ticket_number, seat_number = int(row[0]), row[1], int(row[2])
-                    self.bookings[customer_id] = (ticket_number, seat_number)
-                    self.available_seats -= 1
-
-                    if seat_number % 3 ==1 and seat_number in self.window_seats:
-                        self.window_seats.remove(seat_number)
+                    try:
+                        customer_id = int(row[0])
+                        ticket_number = row[1]
+                        seat_number = int(row[2])
+                        self.bookings[customer_id] = (ticket_number, seat_number)
+                        self.available_seats -= 1
+                        if seat_number % 3 ==1 and seat_number in self.window_seats:
+                            self.window_seats.remove(seat_number)
+                    except (ValueError, IndexError):
+                        print(f"Skipping corrupted row: {row}")
         except FileNotFoundError:
             print(f" No existing booking file found: {filename}. Starting with empty records.")
+        except Exception as e:
+            print(f"Error loading bookings: {e}")
 
 
     def save_cancelled_bookings(self, filename):
@@ -209,11 +221,14 @@ class Flight:
         Args:
             filename (str): The name of the file to save cancelled bookings to.
         """
-        with open(filename, 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Cancelled Customer ID', 'Cancelled Ticket Number'])
-            for customer_id, ticket_number in self.cancelled_bookings:
-                writer.writerow([customer_id, ticket_number])
+        try:
+            with open(filename, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Cancelled Customer ID', 'Cancelled Ticket Number'])
+                for customer_id, ticket_number in self.cancelled_bookings:
+                    writer.writerow([customer_id, ticket_number])
+        except Exception as e:
+            print(f"Error saving cancelled bookings: {e}")
     
 
     """def reset_flight(self):
@@ -242,32 +257,34 @@ def main():
 
         choice = input("Enter your choice: ")
 
-        if choice.isdigit():  # Check if the input is a digit
-            choice = int(choice)
-            if choice == 1:
-                flight.book_ticket()
+        if not choice.isdigit():
+            print("Invalid input. Please enter a number between 1 and 4.")
+            continue 
+        
+        choice = int(choice)
+        if choice == 1:
+            flight.book_ticket()
 
-            elif choice == 2:
-                ticket_number = input("\nEnter ticket number to cancel: ")
-                flight.cancel_ticket(ticket_number)
-                flight.save_cancelled_bookings('cancelled.csv')
+        elif choice == 2:
+            ticket_number = input("\nEnter ticket number to cancel: ")
+            flight.cancel_ticket(ticket_number)
+            flight.save_cancelled_bookings('cancelled.csv')
 
-            elif choice == 3:
-                ticket_number = input("\nEnter your ticket number for seat information: ")
-                flight.query_booking(ticket_number)
+        elif choice == 3:
+            ticket_number = input("\nEnter your ticket number for seat information: ")
+            flight.query_booking(ticket_number)
 
-            elif choice == 4:
-                flight.save_bookings('bookings.csv')
-                print("\nThank you for using Sagir's Airline. Your changes have been saved.")
-                break
+        elif choice == 4:
+            flight.save_bookings('bookings.csv')
+            print("\nThank you for using Sagir's Airline. Your changes have been saved.")
+            break
 
-            elif choice == 5:
-                flight.reset_flight()
+        elif choice == 5:
+            flight.reset_flight()
 
-            else:
-                print("\nInvalid choice. Please select a valid option.")
         else:
-            print("\nInvalid choice. Please enter a number from the menu.")
+            print("\nInvalid option. Please select a valid menu option.")
+    
 
 
 if __name__ == "__main__":
