@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import filedialog
+from tkinter import simpledialog
 import csv
 import random
 import re
@@ -50,6 +50,7 @@ class Flight:
                 if seat_number % 3 == 1:
                     self.window_seats.append(seat_number)
                 self.cancelled_bookings.append((customer_id, ticket_number))
+                self.save_cancelled_tickets('cancelled.csv')
                 return True
         return False
 
@@ -64,7 +65,7 @@ class Flight:
                 }
         return None
 
-    def save_bookings(self, filename):
+    def save_bookings(self, filename='bookings.csv'):
         try:
             with open(filename, 'w', newline='') as file:
                 writer = csv.writer(file)
@@ -73,6 +74,16 @@ class Flight:
                     writer.writerow([customer_id, ticket_number, seat_number])
         except Exception as e:
             print(f"Error saving bookings: {e}")
+
+    def save_cancelled_tickets(self, filename):
+        try:
+            with open(filename, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(["Customer ID", "Ticket Number"])
+                for customer_id, ticket_number in self.cancelled_bookings:
+                    writer.writerow([customer_id, ticket_number])
+        except Exception as e:
+            print(f"Error saving cancelled tickets: {e}")
 
 
 class FlightApp:
@@ -98,7 +109,7 @@ class FlightApp:
         self.query_button.pack(pady=5)
 
         # Save Button
-        self.save_button = tk.Button(root, text="Save Bookings", command=self.save_bookings)
+        self.save_button = tk.Button(root, text="Save and Quit", command=self.save_and_quit)
         self.save_button.pack(pady=5)
 
     def book_ticket(self):
@@ -131,14 +142,13 @@ class FlightApp:
             else:
                 messagebox.showerror("Query Failed", "Ticket not found.")
 
-    def save_bookings(self):
-        filename = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
-        if filename:
-            self.flight.save_bookings(filename)
-            messagebox.showinfo("Save Successful", "Bookings saved successfully!")
+    def save_and_quit(self):
+        self.flight.save_bookings('bookings.csv')
+        messagebox.showinfo("Save Successful", "Bookings saved to 'bookings.csv'.")
+        self.root.quit()
 
     def ask_ticket_number(self, title):
-        return tk.simpledialog.askstring(title, "Enter your ticket number:")
+        return simpledialog.askstring(title, "Enter your ticket number:")
 
 
 if __name__ == "__main__":
