@@ -1,3 +1,4 @@
+
 import numpy as np
 
 #Define the matrix (8 digits of student number + 1). 
